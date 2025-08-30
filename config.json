@@ -1,0 +1,55 @@
+{
+  "embedding": {
+    "provider": "google",
+    "model": "gemini-embedding-001",
+    "dimension": 3072,
+    "cache_ttl_hours": 24,
+    "batch_size": 10,
+    "delay_seconds": 0.1
+  },
+  "processing": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.3,
+    "max_tokens": 8192,
+    "light_model": "gemini-2.5-flash-lite"
+  },
+  "search": {
+        "similarity_threshold": 0.6,
+        "max_results": 50
+    },
+  "chunking": {
+    "min_chunk_words": 20,
+    "max_chunk_words": 150,
+    "semantic_overlap_threshold": 0.9
+  },
+  "storage": {
+    "data_dir": "data",
+    "use_memory": false,
+    "backup_enabled": false,
+    "qdrant": {
+      "hnsw_m": 16,
+      "hnsw_ef_construct": 100,
+      "optimizers_default_segment_number": 2
+    }
+  },
+  "fragment_limits": {
+    "max_content_length": 10000
+  },
+  "intelligence": {
+    "enable_curation": true,
+    "curation_similarity_threshold": 0.45,
+    "curation_search_threshold": 0.4
+  },
+  "logging": {
+    "level": "DEBUG",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "max_file_size_mb": 10,
+    "backup_count": 3
+  },
+  "system_tray": {
+    "configurable": {
+      "processing_model": true,
+      "similarity_threshold": true
+    }
+  }
+}

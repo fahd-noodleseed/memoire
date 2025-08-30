@@ -1,0 +1,49 @@
+"""
+Utilidades para la GUI de Memoire.
+Funciones helper migradas desde test_complete_poc.py
+"""
+
+import platform
+from src.logging_config import get_logger
+
+logger = get_logger('memoire.app')
+
+
+def get_scaling_factor(window):
+    """Detectar factor de scaling de manera segura multiplataforma."""
+    try:
+        system = platform.system()
+        
+        if system == "Windows":
+            # Windows: usar ctypes para obtener factor real
+            from ctypes import windll
+            scale_factor = windll.shcore.GetScaleFactorForDevice(0) / 100
+            return scale_factor
+        else:
+            # Mac/Linux: usar método estándar de tkinter
+            current_dpi = window.winfo_fpixels('1i')
+            scale_factor = current_dpi / 96
+            return scale_factor
+    except Exception as e:
+        # Fallback: sin scaling
+        logger.warning(f"Error detectando scaling: {e}, usando fallback 1.0")
+        return 1.0
+
+
+def center_window_on_screen(window, width, height):
+    """Centrar ventana en pantalla considerando scaling."""
+    try:
+        window.update_idletasks()
+        
+        # Obtener dimensiones de pantalla
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
+        
+        # Calcular posición centrada
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+        
+        window.geometry(f"{width}x{height}+{x}+{y}")
+        
+    except Exception as e:
+        logger.warning(f"Error centrando ventana: {e}")
