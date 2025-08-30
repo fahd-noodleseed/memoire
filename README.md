@@ -17,26 +17,6 @@ Memoire is an experimental **MCP (Model Context Protocol) server** that tackles 
 -   **🧩 Project Segregation**: Keep memories for different topics completely separate using projects.
 -   **💻 CLI & MCP Interface**: Interact with the memory through a comprehensive set of command-line tools or transparently via an integrated MCP server like Claude Desktop.
 
-## Architecture Overview
-
-Memoire employs a sophisticated, multi-step process for managing memory.
-
-*   **`src/core`**: The foundational layer providing services for storage (`Qdrant` + `SQLite`), embedding generation, and basic memory operations (CRUD).
-*   **`src/mcp`**: The main application logic, including the MCP server and the intelligence layer.
-*   **`src/mcp/intelligence`**: The "brain" of the system.
-    *   **`IngestionCurator`**: Drives the `remember` process. It analyzes new information against existing memories, uses an LLM to decide what to create, merge, or delete, and dynamically creates new contexts. It ensures that relationships between fragments and contexts are correctly maintained.
-    *   **`MemorySynthesizer`**: Generates coherent, synthesized responses for `recall` operations.
-
-### Technical Stack
-
--   **Language**: Python 3.11+
--   **Vector Database**: Qdrant for semantic search
--   **Metadata Store**: SQLite for structured data
--   **Cognitive Processing**:
-    -   `gemini-embedding-001` for vectorization.
-    -   `gemini-2.5-flash` for recall and synthesis.
-    -   `gemini-2.5-flash-lite` for ingestion curation.
-
 ## Installation & Setup
 
 ### Prerequisites
@@ -65,7 +45,7 @@ Memoire employs a sophisticated, multi-step process for managing memory.
 
 ### Running the Application
 
-The main entry point for the MCP server is `run.py`. It is typically integrated and launched via a client application like Claude Desktop.
+The main entry point for the MCP server is `run.py`. It is typically integrated and launched via a client application.
 
 **Example Claude Desktop Configuration (`claude_desktop_config.json`):**
 ```json
@@ -83,39 +63,63 @@ The main entry point for the MCP server is `run.py`. It is typically integrated 
 ```
 *Note: On Windows, the command path would be `...\venv\Scripts\python.exe`.*
 
+### Note for WSL Users
+
+To use Memoire seamlessly across both Windows and WSL (Windows Subsystem for Linux), you can configure the data directory to point to a shared location. Edit `config.json` and set the `storage.data_dir` to a path accessible by both, such as a directory on your mounted C: drive:
+
+```json
+{
+  "storage": {
+    "data_dir": "/mnt/c/Users/YourUser/Documents/memoire_data"
+  }
+}
+```
+
 ## Command-Line Interface (CLI) Tools
 
 Memoire provides a rich set of tools for direct interaction and management.
 
-### Project Management
--   `create_project(name, description)`: Creates a new memory project.
--   `list_projects()`: Lists all available projects.
--   `get_project_summary(project_id)`: Shows statistics for a project (fragment, context, and task counts).
--   `delete_project(project_id)`: Deletes an entire project and all its data.
+-   `create_project(name, description)`
+-   `list_projects()`
+-   `get_project_summary(project_id)`
+-   `delete_project(project_id)`
+-   `remember(project_id, content)`
+-   `recall(project_id, query, ...)`
+-   `delete_fragment(fragment_id)`
+-   `list_contexts(project_id)`
+-   `list_fragments_by_context(project_id, context_id)`
+-   `get_contexts_for_fragment(fragment_id)`
+-   `delete_context(project_id, context_id)`
+-   `create_task(project_id, title, description)`
+-   `list_tasks(project_id, status)`
+-   `get_task(task_id)`
+-   `update_task(task_id, ...)`
+-   `delete_task(task_id)`
 
-### Memory Operations
--   `remember(project_id, content)`: Stores information in the memory, triggering the intelligent curation process.
--   `recall(project_id, query, ...)`: Retrieves and synthesizes information based on a natural language query.
--   `delete_fragment(fragment_id)`: Deletes a specific piece of information.
+## Architecture & Advanced Details
 
-### Context Management
--   `list_contexts(project_id)`: Lists all thematic contexts in a project.
--   `list_fragments_by_context(project_id, context_id)`: Shows all memory fragments within a specific context.
--   `get_contexts_for_fragment(fragment_id)`: Finds which contexts a fragment belongs to.
--   `delete_context(project_id, context_id)`: Deletes a context and all its associated fragments.
+### Core Components
 
-### Task Management
--   `create_task(project_id, title, description)`: Creates a new to-do item.
--   `list_tasks(project_id, status)`: Lists tasks, optionally filtering by status (`pending`, `in_progress`, `completed`).
--   `get_task(task_id)`: Retrieves the details of a single task.
--   `update_task(task_id, ...)`: Updates a task's title, description, or status.
--   `delete_task(task_id)`: Deletes a task.
+*   **`src/core`**: Foundational layer for storage (`Qdrant` + `SQLite`), embedding, and memory operations.
+*   **`src/mcp/intelligence`**: The "brain" of the system, featuring the `IngestionCurator` and `MemorySynthesizer`.
 
-## Development
+### Advanced Gemini Implementation
 
--   **Vibe-Coded**: This project is built through AI-assisted development. Expect experimental and iterative approaches.
--   **Local-first**: Data is stored locally in the `data/` directory. No cloud dependencies.
--   **Testing**: To run the test suite, use `pytest tests/`.
+This project leverages several advanced features of the Gemini API to achieve its results:
+
+-   **Structured Output (JSON Mode)**: The `IngestionCurator` uses Gemini's JSON mode to force the model to return a structured decision schema (`{ "fragments_to_create": [], "ids_to_delete": [] }`). This makes the output predictable and reliable, eliminating the need for fragile string parsing.
+-   **Task-Specific Embeddings**: The system uses specialized embedding models depending on the task. For instance, `SEMANTIC_SIMILARITY` is used during ingestion to find related documents, while `RETRIEVAL_QUERY` could be used for recall, optimizing the vectors for their specific purpose.
+-   **Configurable Models**: While the system defaults to `gemini-2.5-flash-lite` for the fast curation task, the models are configurable in `config.json`. You can easily swap in more powerful models like `gemini-2.5-pro` for synthesis or curation, balancing cost, speed, and capability.
+
+## Roadmap & Future Directions
+
+Memoire is an active experiment. Here are some of the planned improvements and research areas:
+
+-   **GUI Enhancements**: The current GUI is functional for monitoring but needs to be updated and tested to fully support all the new backend features, such as task and context management.
+-   **Publish to PyPI**: To simplify distribution, the project will be packaged and published to PyPI, allowing for a simple `pip install memoire-mcp` setup.
+-   **Expanded CLI Tools**: Introduce more granular tools for advanced memory management, such as directly merging fragments or managing context hierarchies.
+-   **Performance Optimization**: Analyze and optimize the recall process to reduce latency.
+-   **Memory Visualization**: Implement a 3D force-directed graph or similar visualization in the GUI to explore the semantic relationships between memory fragments and contexts.
 
 ---
 

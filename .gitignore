@@ -10,6 +10,8 @@ firebase-debug.*.log*
 __pycache__/
 data/
 .gemini/
+.gemini/settings.json
+GEMINI.md
 # Firebase cache
 .firebase/
 .legacy/
